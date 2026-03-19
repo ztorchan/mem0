@@ -1,12 +1,14 @@
 import { VectorStore } from "./base";
 import { SearchFilters, VectorStoreConfig, VectorStoreResult } from "../types";
-import Database from "better-sqlite3";
+import type DatabaseConstructor from "better-sqlite3";
 import fs from "fs";
 import path from "path";
 import {
   ensureSQLiteDirectory,
   getDefaultVectorStoreDbPath,
 } from "../utils/sqlite";
+
+type DatabaseType = typeof DatabaseConstructor;
 
 interface MemoryVector {
   id: string;
@@ -15,9 +17,10 @@ interface MemoryVector {
 }
 
 export class MemoryVectorStore implements VectorStore {
-  private db: Database.Database;
+  private db!: DatabaseConstructor.Database;
   private dimension: number;
   private dbPath: string;
+  private initPromise: Promise<void> | null = null;
 
   constructor(config: VectorStoreConfig) {
     this.dimension = config.dimension || 1536; // Default OpenAI dimension
@@ -32,13 +35,25 @@ export class MemoryVectorStore implements VectorStore {
         );
       }
     }
-
-    ensureSQLiteDirectory(this.dbPath);
-    this.db = new Database(this.dbPath);
-    this.init();
   }
 
-  private init(): void {
+  private async ensureInit(): Promise<void> {
+    if (this.db) return;
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = this._initDb();
+    return this.initPromise;
+  }
+
+  private async _initDb(): Promise<void> {
+    ensureSQLiteDirectory(this.dbPath);
+    // 延迟加载 better-sqlite3，避免模块顶层 import 触发原生模块加载
+    const mod = (await import("better-sqlite3")) as { default: DatabaseType };
+    const Database = mod.default;
+    this.db = new Database(this.dbPath);
+    this.setupTables();
+  }
+
+  private setupTables(): void {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS vectors (
         id TEXT PRIMARY KEY,
@@ -79,6 +94,7 @@ export class MemoryVectorStore implements VectorStore {
     ids: string[],
     payloads: Record<string, any>[],
   ): Promise<void> {
+    await this.ensureInit();
     const stmt = this.db.prepare(
       `INSERT OR REPLACE INTO vectors (id, vector, payload) VALUES (?, ?, ?)`,
     );
@@ -103,6 +119,7 @@ export class MemoryVectorStore implements VectorStore {
     limit: number = 10,
     filters?: SearchFilters,
   ): Promise<VectorStoreResult[]> {
+    await this.ensureInit();
     if (query.length !== this.dimension) {
       throw new Error(
         `Query dimension mismatch. Expected ${this.dimension}, got ${query.length}`,
@@ -140,6 +157,7 @@ export class MemoryVectorStore implements VectorStore {
   }
 
   async get(vectorId: string): Promise<VectorStoreResult | null> {
+    await this.ensureInit();
     const row = this.db
       .prepare(`SELECT * FROM vectors WHERE id = ?`)
       .get(vectorId) as any;
@@ -157,6 +175,7 @@ export class MemoryVectorStore implements VectorStore {
     vector: number[],
     payload: Record<string, any>,
   ): Promise<void> {
+    await this.ensureInit();
     if (vector.length !== this.dimension) {
       throw new Error(
         `Vector dimension mismatch. Expected ${this.dimension}, got ${vector.length}`,
@@ -169,18 +188,21 @@ export class MemoryVectorStore implements VectorStore {
   }
 
   async delete(vectorId: string): Promise<void> {
+    await this.ensureInit();
     this.db.prepare(`DELETE FROM vectors WHERE id = ?`).run(vectorId);
   }
 
   async deleteCol(): Promise<void> {
+    await this.ensureInit();
     this.db.exec(`DROP TABLE IF EXISTS vectors`);
-    this.init();
+    this.setupTables();
   }
 
   async list(
     filters?: SearchFilters,
     limit: number = 100,
   ): Promise<[VectorStoreResult[], number]> {
+    await this.ensureInit();
     const rows = this.db.prepare(`SELECT * FROM vectors`).all() as any[];
     const results: VectorStoreResult[] = [];
 
@@ -210,6 +232,7 @@ export class MemoryVectorStore implements VectorStore {
   }
 
   async getUserId(): Promise<string> {
+    await this.ensureInit();
     const row = this.db
       .prepare(`SELECT user_id FROM memory_migrations LIMIT 1`)
       .get() as any;
@@ -228,6 +251,7 @@ export class MemoryVectorStore implements VectorStore {
   }
 
   async setUserId(userId: string): Promise<void> {
+    await this.ensureInit();
     this.db.prepare(`DELETE FROM memory_migrations`).run();
     this.db
       .prepare(`INSERT INTO memory_migrations (user_id) VALUES (?)`)
@@ -235,6 +259,6 @@ export class MemoryVectorStore implements VectorStore {
   }
 
   async initialize(): Promise<void> {
-    this.init();
+    await this.ensureInit();
   }
 }

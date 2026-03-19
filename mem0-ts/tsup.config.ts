@@ -1,14 +1,27 @@
 import { defineConfig } from "tsup";
 
 const external = [
+  // dependencies
   "openai",
-  "@anthropic-ai/sdk",
-  "groq-sdk",
   "uuid",
-  "pg",
   "zod",
-  "better-sqlite3",
+  "axios",
+  // peerDependencies
+  "@anthropic-ai/sdk",
+  "@azure/identity",
+  "@azure/search-documents",
+  "@cloudflare/workers-types",
+  "@google/genai",
+  "@langchain/core",
+  "@mistralai/mistralai",
   "@qdrant/js-client-rest",
+  "@supabase/supabase-js",
+  "better-sqlite3",
+  "cloudflare",
+  "groq-sdk",
+  "neo4j-driver",
+  "ollama",
+  "pg",
   "redis",
 ];
 

@@ -20,6 +20,7 @@ export class OpenAIEmbedder implements Embedder {
     const response = await this.openai.embeddings.create({
       model: this.model,
       input: text,
+      encoding_format: "float",
     });
     return response.data[0].embedding;
   }

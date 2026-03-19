@@ -137,7 +137,7 @@ class PlatformProvider implements Mem0Provider {
   }
 
   private async _init(): Promise<void> {
-    const { default: MemoryClient } = await import("mem0ai");
+    const { default: MemoryClient } = await import("@ztorchan/mem0ai");
     const opts: { apiKey: string; org_id?: string; project_id?: string } = { apiKey: this.apiKey };
     if (this.orgId) opts.org_id = this.orgId;
     if (this.projectId) opts.project_id = this.projectId;
@@ -230,7 +230,7 @@ class OSSProvider implements Mem0Provider {
   }
 
   private async _init(): Promise<void> {
-    const { Memory } = await import("mem0ai/oss");
+    const { Memory } = await import("@ztorchan/mem0ai/oss");
 
     const config: Record<string, unknown> = { version: "v1.1" };
 

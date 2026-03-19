@@ -1,6 +1,6 @@
 {
-  "name": "@mem0/openclaw-mem0",
-  "version": "0.3.3",
+  "name": "@ztorchan/openclaw-mem0",
+  "version": "0.3.6",
   "type": "module",
   "description": "Mem0 memory backend for OpenClaw — platform or self-hosted open-source",
   "license": "Apache-2.0",
@@ -29,12 +29,30 @@
   },
   "dependencies": {
     "@sinclair/typebox": "0.34.47",
-    "mem0ai": "^2.2.1"
+    "@ztorchan/mem0ai": "^2.4.3",
+    "@anthropic-ai/sdk": "^0.40.1",
+    "@azure/identity": "^4.13.0",
+    "@azure/search-documents": "^12.2.0",
+    "@cloudflare/workers-types": "^4.20250504.0",
+    "@google/genai": "^1.45.0",
+    "@langchain/core": "^0.3.80",
+    "@mistralai/mistralai": "^1.15.1",
+    "@qdrant/js-client-rest": "1.13.0",
+    "@supabase/supabase-js": "^2.99.2",
+    "cloudflare": "^4.5.0",
+    "groq-sdk": "0.3.0",
+    "neo4j-driver": "^5.28.3",
+    "ollama": "^0.5.18",
+    "pg": "8.11.3",
+    "redis": "^4.6.13"
   },
   "openclaw": {
     "extensions": [
       "./dist/index.js"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
